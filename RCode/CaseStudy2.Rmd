@@ -1,0 +1,230 @@
+---
+title: "CaseStudy2"
+author: "Abhishek Dharwadkar"
+date: "December 8, 2016"
+output:
+  html_document:
+    keep_md: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. This is the submission for Case Study 2 in Doing Data Science class
+
+# Question 02 (15 points)
+
+```{r}
+# Install and load the package tseries
+library(tseries)
+
+# Get the data for PSXP and calulate the returns and the volatility
+LNNdata <- get.hist.quote('LNN', quote="Close")
+LNNret <- log(lag(LNNdata)) - log(LNNdata)
+LNNvol <- sd(LNNret) * sqrt(250) * 100
+
+# Function to get volatility in continuous lookback window
+Vol <- function(d, logrets) {
+  var=0
+  lam=0
+  varlist<-c()
+  for(r in logrets) {
+    lam=lam*(1-1/d)+1
+    var=(1-1/lam)*var+(1/lam)*r^2
+    varlist<-c(varlist,var)
+  }
+  sqrt(varlist)
+}
+
+# Get different volatilities
+volest <- Vol(10, LNNret)
+volest2 <- Vol(30, LNNret)
+volest3 <- Vol(100, LNNret)
+
+plot(volest,type="l")
+lines(volest2,type="l",col="red")
+lines(volest3,type="l",col="blue")
+```
+
+# Question 03 (20 points)
+```{r}
+tapply(Orange$circumference, Orange$Tree, mean)
+
+library(ggplot2)
+plot(Orange$circumference,Orange$age,pch=as.integer(Orange$Tree),col=as.integer(Orange$Tree))
+
+boxplot(Orange$circumference ~ Orange$Tree)
+```
+
+# Question 04 (45 points)
+# (i)
+```{r}
+# Set the working directory to where the file is located
+setwd("C:\\Data Science\\SMU\\Semester1\\Doing Data Science\\CaseStudy_2")
+# Read the csv file
+temperature <- read.csv(".\\TEMP.csv", header = T)
+
+# Check the file
+dim(temperature)
+head(temperature)
+summary(temperature)
+str(temperature)
+
+# Check the class of the Date column and if there are any NAs in the file
+class(temperature$Date)
+sum(is.na(temperature$Date))
+
+# Create a new variable Date.d as a date type with the format that is found after 1900
+temperature$Date.d <- as.Date(temperature$Date, format = "%m/%d/%Y")
+sum(is.na(temperature$Date.d))
+
+# Filter the data set to records after 1900
+temperature.after1900 <- subset(temperature, !is.na(temperature$Date.d))
+
+# Check the dataframe after subsetting
+head(temperature.after1900)
+
+# Calculate max and min in the dataset by country
+min.temperature <- aggregate(temperature.after1900$Monthly.AverageTemp, by = list(temperature.after1900$Country), min, na.rm = T)
+max.temperature <- aggregate(temperature.after1900$Monthly.AverageTemp, by = list(temperature.after1900$Country), max, na.rm = T)
+
+# Give the proper column names
+colnames(min.temperature) <- c("Country", "min")
+colnames(max.temperature) <- c("Country", "max")
+
+# Merge the dataset by country and calculate the difference in max and min temperature
+final.temperature <- merge(x = max.temperature, y = min.temperature, by="Country")
+final.temperature$diff <- final.temperature$max - final.temperature$min
+
+final.temperature <- final.temperature[order(-final.temperature$diff),]
+final.temperature.top20 <- head(final.temperature, 20)
+
+dim(final.temperature.top20)
+
+barplot(final.temperature.top20$diff, names = final.temperature.top20$Country)
+```
+
+# (ii) a,b,c
+```{r}
+# Set the working directory to where the file is located
+setwd("C:\\Data Science\\SMU\\Semester1\\Doing Data Science\\CaseStudy_2")
+# Read the csv file
+temperature <- read.csv(".\\TEMP.csv", header = T)
+
+# Check the class of the Date column and if there are any NAs in the file
+class(temperature$Date)
+sum(is.na(temperature$Date))
+
+# Create a new variable Date.d as a date type with the format that is found after 1900
+temperature$Date.d <- as.Date(temperature$Date, format = "%m/%d/%Y")
+sum(is.na(temperature$Date.d))
+
+# Filter the data set to records after 1900
+temperature.after1900 <- subset(temperature, !is.na(temperature$Date.d))
+
+# Create the Faranheit column in the dataframe
+temperature.after1900$Monthly.AverageTemp.F <- (temperature.after1900$Monthly.AverageTemp * 1.8) + 32
+
+head(temperature.after1900)
+
+# Set the working directory to where the file is located
+setwd("C:\\Data Science\\SMU\\Semester1\\Doing Data Science\\CaseStudy_2")
+# Read the csv file
+temperature <- read.csv(".\\TEMP.csv", header = T)
+
+# Check the class of the Date column and if there are any NAs in the file
+class(temperature$Date)
+sum(is.na(temperature$Date))
+
+# Create a new variable Date.d as a date type with the format that is found after 1900
+temperature$Date.d <- as.Date(temperature$Date, format = "%m/%d/%Y")
+sum(is.na(temperature$Date.d))
+
+# Filter the data set to records after 1900
+temperature.after1900 <- subset(temperature, !is.na(temperature$Date.d))
+
+# Create the Faranheit column in the dataframe
+temperature.after1900$Monthly.AverageTemp.F <- (temperature.after1900$Monthly.AverageTemp * 1.8) + 32
+
+head(temperature.after1900)
+
+# Create a new column that has just the value of the year
+temperature.after1900$Year <- format(as.Date(temperature.after1900$Date.d), format = "%Y")
+head(temperature.after1900)
+
+# Aggregate temperatures by Year
+temperature.after1900.by.year <- aggregate(temperature.after1900$Monthly.AverageTemp, by = list(temperature.after1900$Year), mean, na.rm = T)
+
+# Give meaningful column names to the aggregated data
+colnames(temperature.after1900.by.year) <- c("Year", "Avg Temp")
+
+# Plot the Year vs Avg temperature plot
+plot(temperature.after1900.by.year$Year, temperature.after1900.by.year$`Avg Temp`)
+
+# Calculate the differenct in average temperature with the previous year
+temperature.after1900.by.year$Year_diff <- c(0, diff(temperature.after1900.by.year$`Avg Temp`, lag = 1, differences = 1))
+temperature.after1900.by.year$Abs_year_diff <- abs(temperature.after1900.by.year$Year_diff)
+
+temperature.after1900.by.year.max.diff <- temperature.after1900.by.year[order(temperature.after1900.by.year$Abs_year_diff, decreasing = T, na.last = T),]
+
+head(temperature.after1900.by.year.max.diff, 1)
+```
+
+# (iii) a,b
+```{r}
+# City Temp Data
+# Set the working directory to where the file is located
+setwd("C:\\Data Science\\SMU\\Semester1\\Doing Data Science\\CaseStudy_2")
+# Read the csv file
+City.temperature <- read.csv(".\\CityTemp.csv", header = T)
+
+# Check the data
+dim(City.temperature)
+head(City.temperature)
+summary(City.temperature)
+str(City.temperature)
+
+# Check the class of the Date column and if there are any NAs in the file
+class(City.temperature$Date)
+sum(is.na(City.temperature$Date))
+
+# Create a new variable Date.d as a date type with the format that is found after 1900
+City.temperature$Date.d <- as.Date(City.temperature$Date, format = "%m/%d/%Y")
+sum(is.na(City.temperature$Date.d))
+
+head(City.temperature, 10)
+
+# Filter the data set to records after 1900
+City.temperature.after1900 <- subset(City.temperature, !is.na(City.temperature$Date.d))
+
+head(City.temperature.after1900, 10)
+
+# Calculate max and min in the dataset by City
+min.temperature.by.city <- aggregate(City.temperature.after1900$Monthly.AverageTemp, by = list(City.temperature.after1900$City), min, na.rm = T)
+max.temperature.by.city <- aggregate(City.temperature.after1900$Monthly.AverageTemp, by = list(City.temperature.after1900$City), max, na.rm = T)
+
+colnames(min.temperature.by.city) <- c("City", "min")
+colnames(max.temperature.by.city) <- c("City", "max")
+
+# Merge the dataset by country and calculate the difference in max and min temperature
+final.temperature.by.city <- merge(x = max.temperature.by.city, y = min.temperature.by.city, by="City")
+final.temperature.by.city$diff <- final.temperature.by.city$max - final.temperature.by.city$min
+
+# Order descending difference
+final.temperature.by.city <- final.temperature.by.city[order(-final.temperature.by.city$diff),]
+final.temperature.by.city.top20 <- head(final.temperature.by.city, 20)
+
+dim(final.temperature.by.city.top20)
+
+barplot(final.temperature.by.city.top20$diff, names = final.temperature.by.city.top20$City)
+
+# Comparing the graphs below are a few observations:
+# 1.	Being the highest difference in the city does not mean the highest difference in the country and vice versa
+# 2.	The top 3rd city is Moscow and the top 3rd country is Russia which is a coincidence.
+# 3.	Also, there is a pattern, lot of cities in China and Russia are in the top differences and hence the country is also in the top
+
+
+```
